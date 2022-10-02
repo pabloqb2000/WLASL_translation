@@ -23,7 +23,6 @@ def video_to_tensor(pic):
 
 def load_rgb_frames_from_video(vid_root, vid, start, num):
     video_path = os.path.join(vid_root, vid + '.mp4')
-
     vidcap = cv2.VideoCapture(video_path)
     # vidcap = cv2.VideoCapture('/home/dxli/Desktop/dm_256.mp4')
 
@@ -32,6 +31,8 @@ def load_rgb_frames_from_video(vid_root, vid, start, num):
     vidcap.set(cv2.CAP_PROP_POS_FRAMES, start)
     for offset in range(num):
         success, img = vidcap.read()
+        if not success or img is None:
+          break
 
         w, h, c = img.shape
         if w < 226 or h < 226:

@@ -19,6 +19,7 @@ from pytorch_i3d import InceptionI3d
 from datasets.nslt_dataset_all import NSLT as Dataset
 import cv2
 
+from tqdm.notebook import tqdm
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = '0'
@@ -90,18 +91,18 @@ def run(init_lr=0.1,
     correct_5 = 0
     correct_10 = 0
 
-    top1_fp = np.zeros(num_classes, dtype=np.int)
-    top1_tp = np.zeros(num_classes, dtype=np.int)
+    top1_fp = np.zeros(num_classes, dtype=int)
+    top1_tp = np.zeros(num_classes, dtype=int)
 
-    top5_fp = np.zeros(num_classes, dtype=np.int)
-    top5_tp = np.zeros(num_classes, dtype=np.int)
+    top5_fp = np.zeros(num_classes, dtype=int)
+    top5_tp = np.zeros(num_classes, dtype=int)
 
-    top10_fp = np.zeros(num_classes, dtype=np.int)
-    top10_tp = np.zeros(num_classes, dtype=np.int)
+    top10_fp = np.zeros(num_classes, dtype=int)
+    top10_tp = np.zeros(num_classes, dtype=int)
 
-    for data in dataloaders["test"]:
+    print(len(dataloaders["test"]))
+    for data in tqdm(dataloaders["test"]):
         inputs, labels, video_id = data  # inputs: b, c, t, h, w
-
         per_frame_logits = i3d(inputs)
 
         predictions = torch.max(per_frame_logits, dim=2)[0]
@@ -123,10 +124,16 @@ def run(init_lr=0.1,
             top1_tp[labels[0].item()] += 1
         else:
             top1_fp[labels[0].item()] += 1
-        print(video_id, float(correct) / len(dataloaders["test"]), float(correct_5) / len(dataloaders["test"]),
-              float(correct_10) / len(dataloaders["test"]))
+        # print(video_id, float(correct) / len(dataloaders["test"]), float(correct_5) / len(dataloaders["test"]),
+        #      float(correct_10) / len(dataloaders["test"]))
 
         # per-class accuracy
+    print(top1_fp)
+    print(top1_tp)
+    print(correct, correct/len(dataloaders["test"]))
+    print(correct_5, correct_5/len(dataloaders["test"]))
+    print(correct_10, correct_10/len(dataloaders["test"]))
+
     top1_per_class = np.mean(top1_tp / (top1_tp + top1_fp))
     top5_per_class = np.mean(top5_tp / (top5_tp + top5_fp))
     top10_per_class = np.mean(top10_tp / (top10_tp + top10_fp))
@@ -164,14 +171,14 @@ def ensemble(mode, root, train_split, weights, num_classes):
     correct_10 = 0
     # confusion_matrix = np.zeros((num_classes,num_classes), dtype=np.int)
 
-    top1_fp = np.zeros(num_classes, dtype=np.int)
-    top1_tp = np.zeros(num_classes, dtype=np.int)
+    top1_fp = np.zeros(num_classes, dtype=int)
+    top1_tp = np.zeros(num_classes, dtype=int)
 
-    top5_fp = np.zeros(num_classes, dtype=np.int)
-    top5_tp = np.zeros(num_classes, dtype=np.int)
+    top5_fp = np.zeros(num_classes, dtype=int)
+    top5_tp = np.zeros(num_classes, dtype=int)
 
-    top10_fp = np.zeros(num_classes, dtype=np.int)
-    top10_tp = np.zeros(num_classes, dtype=np.int)
+    top10_fp = np.zeros(num_classes, dtype=int)
+    top10_tp = np.zeros(num_classes, dtype=int)
 
     for data in dataloaders["test"]:
         inputs, labels, video_id = data  # inputs: b, c, t, h, w
@@ -214,8 +221,14 @@ def ensemble(mode, root, train_split, weights, num_classes):
             top1_tp[labels[0].item()] += 1
         else:
             top1_fp[labels[0].item()] += 1
-        print(video_id, float(correct) / len(dataloaders["test"]), float(correct_5) / len(dataloaders["test"]),
-              float(correct_10) / len(dataloaders["test"]))
+        # print(video_id, float(correct) / len(dataloaders["test"]), float(correct_5) / len(dataloaders["test"]),
+        #       float(correct_10) / len(dataloaders["test"]))
+
+    print(top1_fp)
+    print(top1_tp)
+    print(correct, correct/len(dataloaders["test"]))
+    print(correct_5, correct_5/len(dataloaders["test"]))
+    print(correct_10, correct_10/len(dataloaders["test"]))
 
     top1_per_class = np.mean(top1_tp / (top1_tp + top1_fp))
     top5_per_class = np.mean(top5_tp / (top5_tp + top5_fp))
@@ -261,12 +274,13 @@ if __name__ == '__main__':
     # ================== test i3d on a dataset ==============
     # need to add argparse
     mode = 'rgb'
-    num_classes = 2000
+    num_classes = 100
     save_model = './checkpoints/'
 
-    root = '../../data/WLASL2000'
+    root = './data/WLASL100'
 
     train_split = 'preprocess/nslt_{}.json'.format(num_classes)
-    weights = 'archived/asl2000/FINAL_nslt_2000_iters=5104_top1=32.48_top5=57.31_top10=66.31.pt'
+    weights = 'archived/asl100/FINAL_nslt_100_iters=896_top1=65.89_top5=84.11_top10=89.92.pt'
 
-    run(mode=mode, root=root, save_model=save_model, train_split=train_split, weights=weights)
+    ensemble(mode, root, train_split, weights, num_classes)
+    # run(mode=mode, root=root, save_model=save_model, train_split=train_split, weights=weights)
